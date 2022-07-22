@@ -78,10 +78,14 @@ for tf_guess = .001:.001:.20
 
     outer_disc_coeff = effective_flow_area / outlet_area; % [N/A]
 
-    fcn = @(outer_filling_eff) (outer_filling_eff * sqrt(outer_filling_eff / (2 - outer_filling_eff)) - outer_disc_coeff);
+    fcn = @(outer_filling_eff) outer_filling_eff * sqrt(outer_filling_eff / (2 - outer_filling_eff));
 
-    outer_filling_eff = fzero(fcn, .3);
+    outer_
 
+    outer_filling_eff = fzero(@(outer_filling_eff) ...
+        (outer_filling_eff * sqrt(outer_filling_eff / ...
+        (2 - outer_filling_eff)) - outer_disc_coeff), .3); % [N/A] Beyvel, Eq. 5-66
+    
     outer_K = (((1 - outer_filling_eff) * sqrt(2)) ...
         / (outer_filling_eff * sqrt(outer_filling_eff))); % [N/A] Beyvel, Eq. 5-65
 
@@ -92,7 +96,7 @@ for tf_guess = .001:.001:.20
         / (outer_S + sqrt(outer_S^2 - outer_disc_coeff^2 ...
         * outer_K^2)))) - outer_disc_coeff); % plz justify this mess
 
-     outer_S = fzero(fcn, .8);
+     outer_S = fzero(fcn, .6);
 
      outer_spray_angle = atan((2 * outer_disc_coeff * outer_K) / (sqrt((1 + outer_S)^2 - ...
         (4 * outer_disc_coeff^2 * outer_K^2)))); % [] Beyvel Eq. 5-80
