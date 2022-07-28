@@ -15,9 +15,9 @@ m_dot_LOX = 1; % [lbm/s] Oxidizer mass flow
 delta_p_LOX = 14400; % [lbf/ft^2] Oxidizer pressure drop 
 LOX_dens = 71.168; % [lb/ft^3] LOX density 
 inner_num_inlets = 3; % [N/A] number of tangential inlets 
-spray_angle = 60; % [degrees] Desired spray half angle 
+spray_angle = 45; % [degrees] Desired spray half angle 
 kin_visc_LOX= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of LOX
-K_guess = 3.5;
+K_guess = 3;
 inner_wall_thck = .005104; % [ft] wall thickness of the inner element, ~ 1/16"
 coeff_nozzle_open = 3; % coefficient of nozzle opening, from Beyvel pg. 263 
     % should be (2-5), Bazarov says 3x
@@ -87,7 +87,7 @@ while lcv < 100
     matrix(lcv,4) = visc_spray_angle;
     matrix(lcv,5) = inner_disc_coeff;
 
-    if (K_guess - K_visc) / K_visc < .04
+    if ((K_guess - K_visc) / K_visc < .04) || visc_spray_angle < spray_angle
         break
     else
         K_guess = K_visc;
