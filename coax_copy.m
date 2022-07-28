@@ -1,21 +1,24 @@
-clc;
-clear all; 
-
-%{ 
-In this version, the Beyvel and Orzechowski method is followed for the 
-inner element, and the method outlined in Bazarov's "design and dynamics
-of jet and swirl injectors" is followed for the outer element
+%{
+Purdue Space Program - Liquids
+Research and Development - coaxial bi-swirl sizing code
+Created by: Jacob Bell
+In this version, a  mix of both method's presented by Beyvel and Bazarov are used. 
+Essentially just means that forms of
+certain equations are expressed in varying ways (see document on the
+drive for direct equation comparison).
 %}
+clc;
+clear; 
 
 % Global Constants
 gravity = 32.3; % [ft/s^2] Acceleration due to gravity
 
 % Inner Element constants and assumptions
 m_dot_LOX = 1; % [lbm/s] Oxidizer mass flow  
-delta_p_LOX = 14400; % [lbf/ft^2] Oxidizer pressure drop 
+delta_p_LOX = 10800; % [lbf/ft^2] Oxidizer pressure drop 
 LOX_dens = 71.168; % [lb/ft^3] LOX density 
-inner_num_inlets = 4; % [N/A] number of tangential inlets 
-spray_angle = 45; % [degrees] Desired spray half angle 
+inner_num_inlets = 3; % [N/A] number of tangential inlets 
+spray_angle = 30; % [degrees] Desired spray half angle 
 kin_visc_LOX= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of LOX
 K_guess = 3;
 inner_wall_thck = .005104; % [ft] wall thickness of the inner element, ~ 1/16"
@@ -25,8 +28,6 @@ coeff_nozzle_open = 3; % coefficient of nozzle opening, from Beyvel pg. 263
 % Initial Calculations
 
 lcv = 1;
-matrix = [];
-
 while lcv < 100
     inner_filling_eff = fzero(@(inner_filling_eff) K_guess - (((1-inner_filling_eff) * sqrt(2)) ...
         / (inner_filling_eff * sqrt(inner_filling_eff))), .4); % [N/A] Beyvel and Orzechowski, Eq. 5-65
@@ -58,22 +59,23 @@ while lcv < 100
     Re_LOX = (4 * m_dot_LOX)/ (pi * LOX_dens * ...
         kin_visc_LOX * sqrt(inner_num_inlets) * inner_inlet_diam); % Beyvel, Eq. 5-86
     
-    inner_frict_coeff = exp((25.8/log(Re_LOX)^2.58) - 2); % Beyvel, Eq. 5-87
+    inner_frict_coeff = exp((25.8/log(Re_LOX)^2.58) - 2); % Friction Coefficient Beyvel, Eq. 5-87
     
     K_frict = (R * (inner_swirl_diam / 2)) / ((inner_num_inlets * ...
-        (inner_inlet_diam / 2)^2) + (inner_frict_coeff / 2) * R * (R - (inner_swirl_diam / 2))); % Beyvel, Eq. 5-81
+        (inner_inlet_diam / 2)^2) + (inner_frict_coeff / 2) * ...
+        R * (R - (inner_swirl_diam / 2))); % K value taking friction into account Beyvel, Eq. 5-81
 
     visc_spray_angle = atand((2 * inner_disc_coeff * K_frict) / sqrt((1 + inner_S)^2 - ...
     (4 * inner_disc_coeff^2 * K_guess^2))); % Beyvel, Eq. 5-80
 
-    inner_frict_filling_eff = fzero(@(inner_frict_filling_eff) K_frict - (((1-inner_frict_filling_eff) * sqrt(2)) ...
-        / (inner_frict_filling_eff * sqrt(inner_frict_filling_eff))), .4); % [N/A] Beyvel and Orzechowski, Eq. 5-65
+    eq_filling_eff = fzero(@(eq_filling_eff) K_frict - (((1-eq_filling_eff) * sqrt(2)) ...
+        / (eq_filling_eff * sqrt(eq_filling_eff))), .4); % [N/A] Beyvel and Orzechowski, Eq. 5-65
 
-    inner_frict_disc_coeff = inner_frict_filling_eff * sqrt(inner_frict_filling_eff / ...
-        (2 - inner_frict_filling_eff));
+    eq_disc_coeff = eq_filling_eff * sqrt(eq_filling_eff / ...
+        (2 - eq_filling_eff)); % temporary discharge coeff from K_frict value
 
-    inner_visc_disc_coeff = inner_frict_disc_coeff / (sqrt(1 + ...
-        inner_frict_disc_coeff^2 * (K_guess^2 / coeff_nozzle_open^2))); % Bazarov Eq. 99
+    inner_visc_disc_coeff = eq_disc_coeff / (sqrt(1 + ...
+        eq_disc_coeff^2 * (K_guess^2 / coeff_nozzle_open^2))); % Bazarov Eq. 99
 
     inner_visc_swirl_diam = sqrt(4 * m_dot_LOX / (pi * inner_visc_disc_coeff * ...
         sqrt(2 * LOX_dens * delta_p_LOX * gravity))); % Beyvel, Eq. 5-82
@@ -81,16 +83,11 @@ while lcv < 100
     K_visc = (2 * R * inner_visc_swirl_diam) / (inner_num_inlets * ...
         inner_inlet_diam^2); % Beyvel 5-83
 
-    external_nozzle_diam = inner_swirl_diam + (2 * inner_wall_thck); % rough guess, wall = 1/16"
-
     lcv = lcv + 1;
-    matrix(lcv,1) = K_guess;
-    matrix(lcv,2) = K_visc;
-    matrix(lcv,3) = inner_S;
-    matrix(lcv,4) = visc_spray_angle;
-    matrix(lcv,5) = inner_disc_coeff;
-
     if ((K_guess - K_visc) / K_visc < .04)
+        K_final = K_visc;
+        inner_diam_final = inner_swirl_diam;
+        external_nozzle_diam = inner_diam_final + (2 * inner_wall_thck); % rough guess, wall = 1/16"
         break
     else
         K_guess = K_visc;
