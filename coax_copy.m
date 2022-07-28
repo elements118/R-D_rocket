@@ -14,10 +14,10 @@ gravity = 32.3; % [ft/s^2] Acceleration due to gravity
 m_dot_LOX = 1; % [lbm/s] Oxidizer mass flow  
 delta_p_LOX = 14400; % [lbf/ft^2] Oxidizer pressure drop 
 LOX_dens = 71.168; % [lb/ft^3] LOX density 
-inner_num_inlets = 4; % [N/A] number of tangential inlets 
+inner_num_inlets = 3; % [N/A] number of tangential inlets 
 spray_angle = 60; % [degrees] Desired spray half angle 
 kin_visc_LOX= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of LOX
-K_guess = 2.5;
+K_guess = 3.5;
 inner_wall_thck = .005104; % [ft] wall thickness of the inner element, ~ 1/16"
 coeff_nozzle_open = 3; % coefficient of nozzle opening, from Beyvel pg. 263 
     % should be (2-5), Bazarov says 3x
@@ -33,6 +33,15 @@ while lcv < 100
     
     inner_disc_coeff = inner_filling_eff * sqrt(inner_filling_eff / (2 - inner_filling_eff)); % [N/A] Beyvel and Orzechowski, Eq. 5-66
     
+    fcn = @(inner_S) ((sqrt(1 - inner_disc_coeff^2 * K_guess^2)) ...
+    - (inner_S * sqrt(inner_S^2 - inner_disc_coeff^2 * K_guess^2)) ...
+    - (inner_disc_coeff^2 * K_guess^2 * log((1 ...
+    + sqrt(1 - inner_disc_coeff^2 * K_guess^2)) ...
+    / (inner_S + sqrt(inner_S^2 - inner_disc_coeff^2 ...
+    * K_guess^2)))) - inner_disc_coeff); % Beyvel Eq. 5-58
+
+    inner_S = fzero(fcn, .8);
+
     inner_swirl_diam = sqrt(4 * m_dot_LOX / (pi * inner_disc_coeff * ...
         sqrt(2 * LOX_dens * delta_p_LOX * gravity))); % Beyvel, Eq. 5-82
     
@@ -66,15 +75,6 @@ while lcv < 100
     K_visc = (2 * R * inner_visc_swirl_diam) / (inner_num_inlets * ...
         inner_inlet_diam^2); % Beyvel 5-83
 
-    fcn = @(inner_S) ((sqrt(1 - inner_visc_disc_coeff^2 * K_visc^2)) ...
-    - (inner_S * sqrt(inner_S^2 - inner_visc_disc_coeff^2 * K_visc^2)) ...
-    - (inner_visc_disc_coeff^2 * K_visc^2 * log((1 ...
-    + sqrt(1 - inner_visc_disc_coeff^2 * K_visc^2)) ...
-    / (inner_S + sqrt(inner_S^2 - inner_visc_disc_coeff^2 ...
-    * K_visc^2)))) - inner_visc_disc_coeff); % Beyvel Eq. 5-58
-
-    inner_S = fzero(fcn, .7);
-
     visc_spray_angle = atand((2 * inner_visc_disc_coeff * K_visc) / sqrt((1 + inner_S)^2 - ...
     (4 * inner_visc_disc_coeff^2 * K_guess^2))); % Beyvel, Eq. 5-80
 
@@ -84,7 +84,8 @@ while lcv < 100
     matrix(lcv,1) = K_guess;
     matrix(lcv,2) = K_visc;
     matrix(lcv,3) = inner_S;
-    matrix(lcv,3) = visc_spray_angle;
+    matrix(lcv,4) = visc_spray_angle;
+    matrix(lcv,5) = inner_disc_coeff;
 
     if (K_guess - K_visc) / K_visc < .04
         break
