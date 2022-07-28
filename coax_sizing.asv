@@ -9,14 +9,13 @@ m_dot_LOX = 5; % [lbm/s] Oxidizer mass flow
 delta_p_LOX = 14400; % [lbf/ft^2] Oxidizer pressure drop 
 LOX_dens = 71.168; % [lb/ft^3] LOX density 
 inner_num_inlets = 4; % [N/A] number of tangential inlets 
-R = 2; % [N/A] Find this ratio, from Beyvel pg. 263 should be 2-5 times inner swirl diam
 spray_angle = 30; % [degrees] Desired spray half angle 
 kin_visc_LOX= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of LOX
 
 % Initial Calculations
 lcv = 1;
 angle_diff = [];
-for K_guess = 1:.05:5
+for K_guess = 1:.1:2
     inner_filling_eff = fzero(@(inner_filling_eff) K_guess - (((1-inner_filling_eff) * sqrt(2)) ...
         / (inner_filling_eff * sqrt(inner_filling_eff))), .4); % [N/A] Beyvel and Orzechowski, Eq. 5-65
 
@@ -24,7 +23,7 @@ for K_guess = 1:.05:5
 
     inner_swirl_diam = sqrt(4 * m_dot_LOX / (pi * inner_disc_coeff * sqrt(2 * LOX_dens * delta_p_LOX * gravity))); % Beyvel, Eq. 5-82
 
-    R = 2.5 * inner_swirl_diam; % [N/A] Find this ratio, from Beyvel pg. 263 should be 2-5 times inner swirl diam
+    R = 2 * inner_swirl_diam; % [N/A] Find this ratio, from Beyvel pg. 263 should be 2-5 times inner swirl diam
 
     inner_inlet_diam = sqrt((2 * R * inner_swirl_diam) / (inner_num_inlets * K_guess)); % Beyvel, Eq. 5-84
 
@@ -59,11 +58,11 @@ end
 
 % Inner Element constants and assumptions
 inner_wall_thck = .005104; % [ft] wall thickness of the inner element
-m_dot_FUEL = 5.0; % [lbm/s] mass flow of fuel
+m_dot_FUEL = 2.5; % [lbm/s] mass flow of fuel
 delta_p_FUEL = 14400; % [lbf/ft^2] pressure drop of fuel 
 FUEL_dens = 50.566; % [lbm/ft^3] fuel density
 outer_num_inlets = 4; % [N/A] number of inlets of the outer element
-kin_visc_FUEL = .00257; % [ft^2/s] kinematic viscosity of the fuel
+kin_visc_FUEL = 2.368*10^-5; % [ft^2/s] kinematic viscosity of the fuel
 vortex_gap = .01181 / 12; % [ft] permitted gas vortex radius, Bazarov page 76
 
 lcv = 1;
@@ -74,18 +73,14 @@ for tf_guess = .001:.001:.20
 
     effective_flow_area = m_dot_FUEL / sqrt(2 * FUEL_dens * delta_p_FUEL * gravity); % [] Beyvel, Eq. 5-63
 
-    outlet_area = (pi / 4) * outer_swirl_diam^2; % [] 
+    outlet_area = (pi / 4) * outer_swirl_diam^2 - ((pi/4) * (inner_swirl_diam + 2 * inner_wall_thck)^2); % [] 
 
     outer_disc_coeff = effective_flow_area / outlet_area; % [N/A]
 
-    fcn = @(outer_filling_eff) outer_filling_eff * sqrt(outer_filling_eff / (2 - outer_filling_eff));
+    fcn = @(outer_filling_eff) (outer_filling_eff * sqrt(outer_filling_eff / (2 - outer_filling_eff)) - outer_disc_coeff);
 
-    outer_
+    outer_filling_eff = fzero(fcn, .7);
 
-    outer_filling_eff = fzero(@(outer_filling_eff) ...
-        (outer_filling_eff * sqrt(outer_filling_eff / ...
-        (2 - outer_filling_eff)) - outer_disc_coeff), .3); % [N/A] Beyvel, Eq. 5-66
-    
     outer_K = (((1 - outer_filling_eff) * sqrt(2)) ...
         / (outer_filling_eff * sqrt(outer_filling_eff))); % [N/A] Beyvel, Eq. 5-65
 
@@ -96,7 +91,7 @@ for tf_guess = .001:.001:.20
         / (outer_S + sqrt(outer_S^2 - outer_disc_coeff^2 ...
         * outer_K^2)))) - outer_disc_coeff); % plz justify this mess
 
-     outer_S = fzero(fcn, .6);
+     outer_S = fzero(fcn, .3);
 
      outer_spray_angle = atan((2 * outer_disc_coeff * outer_K) / (sqrt((1 + outer_S)^2 - ...
         (4 * outer_disc_coeff^2 * outer_K^2)))); % [] Beyvel Eq. 5-80
