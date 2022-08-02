@@ -47,7 +47,7 @@ while lcv < 100
     inner_swirl_diam = sqrt(4 * m_dot_LOX / (pi * inner_disc_coeff * ...
         sqrt(2 * LOX_dens * delta_p_LOX * gravity))); % Beyvel, Eq. 5-82
     
-    inner_R= (coeff_nozzle_open * inner_swirl_diam) / 2; % "swirl arm", center axis to inlet
+    inner_R = (coeff_nozzle_open * inner_swirl_diam) / 2; % "swirl arm", center axis to inlet
 
     inner_nozzle_length = 2 * inner_swirl_diam; % Suggested by Bazarov pg. 76
 
@@ -106,18 +106,15 @@ kin_visc_FUEL= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of LOX
 coeff_nozzle_open = 3; % coefficient of nozzle opening, from Beyvel pg. 263 
     % should be (2-5), Bazarov says 3x (for closed). This value is the ratio of "swirl
     % arm"/nozzle radius
+permitted_vortex_rad = (external_nozzle_diam / 2) + .00098425; % value comes from bazarov, Pg. 76
 
 % INITIAL VALUES
-permitted_vortex_rad = (external_nozzle_diam / 2) + .00098425; % value comes from bazarov, Pg. 76
 outer_swirl_diam = 2 * permitted_vortex_rad; % first estimation of outer diameter
 effective_flow_area = m_dot_FUEL / sqrt(2 * FUEL_dens * delta_p_FUEL * gravity); % [] Beyvel, Eq. 5-63
-
 outlet_area = (pi / 4) * outer_swirl_diam^2; % [] 
-
 outer_disc_coeff = effective_flow_area / outlet_area; % [N/A]
 
 lcv = 1;
-
 while lcv < 100
     fcn = @(outer_filling_eff) (outer_filling_eff * sqrt(outer_filling_eff ...
         / (2 - outer_filling_eff)) - outer_disc_coeff); % Beyvel Eq. 5-66
@@ -146,10 +143,17 @@ while lcv < 100
 end
 
 % Outer element final dimensions
+outer_R = (outer_swirl_diam * coeff_nozzle_open) / 2;
+outer_inlet_diam = sqrt((2 * outer_R * outer_swirl_diam) / (outer_num_inlets * outer_K)); % Beyvel, Eq. 5-84
+outer_nozzle_length = 2 * outer_swirl_diam; % Suggested by Bazarov pg. 76
+outer_chamber_length = 3 * outer_R; % From Bazarov, should be (2-3) * R
+outer_inlet_length = (outer_inlet_diam / 2) * 3; % Suggested by Bazarov to be (3-4) * inlet radius
 
 
-
-
+inner_outputs = ["Inner Swirl Diam."; "Inner Inlet Diam."; "Inner Chamber Lg."; "Inner Inlet Lg."];
+inner_value = [inner_swirl_diam; inner_inlet_diam, inner_chamber_length, inner_inlet_length,];
+units = []
+outer_outputs = ["Outer Swirl Diam."; "Outer Inlet Diam."; "Outer Chamber Lg."; "Outer Inlet Lg."; "Outer Chamber Lg."];
 
 
 

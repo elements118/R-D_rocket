@@ -2,7 +2,7 @@
 Purdue Space Program - Liquids
 Research and Development - coaxial bi-swirl sizing code
 Created by: Jacob Bell
-In this version, a  mix of both method's presented by Beyvel and Bazarov are used. 
+In this early version, a  mix of both method's presented by Beyvel and Bazarov are used. 
 Essentially just means that forms of
 certain equations are expressed in varying ways (see document on the
 drive for direct equation comparison).
@@ -48,14 +48,8 @@ while lcv < 100
         sqrt(2 * LOX_dens * delta_p_LOX * gravity))); % Beyvel, Eq. 5-82
     
     inner_R = (coeff_nozzle_open * inner_swirl_diam) / 2; % "swirl arm", center axis to inlet
-
-    inner_nozzle_length = 2 * inner_swirl_diam; % Suggested by Bazarov pg. 76
-
-    inner_chamber_length = 3 * inner_R; % From Bazarov, should be (2-3) * R
     
     inner_inlet_diam = sqrt((2 * inner_R * inner_swirl_diam) / (inner_num_inlets * K_guess)); % Beyvel, Eq. 5-84
-    
-    inner_inlet_length = (inner_inlet_diam / 2) * 3; % Suggested by Bazarov to be (3-4) * inlet radius
 
     Re_LOX = (4 * m_dot_LOX)/ (pi * LOX_dens * ...
         kin_visc_LOX * sqrt(inner_num_inlets) * inner_inlet_diam); % Beyvel, Eq. 5-86
@@ -95,29 +89,32 @@ while lcv < 100
     end
 end
 
+% Inner swirler final parameter calcs
+inner_nozzle_length = 2 * inner_swirl_diam; % Suggested by Bazarov pg. 76
+inner_chamber_length = 3 * inner_R; % From Bazarov, should be (2-3) * R
+inner_inlet_length = (inner_inlet_diam / 2) * 3; % Suggested by Bazarov to be (3-4) * inlet radius
+inner_chamber_diam = (2 * inner_R) + inner_inlet_diam;
+
 % TIME FOR PART TWO!!!!!!
 
-% Inner Element constants and assumptions
-m_dot_FUEL = .5; % [lbm/s] Oxidizer mass flow  
+% Outer Element constants and assumptions
+m_dot_FUEL = .313; % [lbm/s] Oxidizer mass flow  
 delta_p_FUEL = 10800; % [lbf/ft^2] Oxidizer pressure drop 
-FUEL_dens = 71.168; % [lb/ft^3] LOX density 
-outer_num_inlets = 3; % [N/A] number of tangential inlets 
+FUEL_dens = 50.57; % [lb/ft^3] LOX density 
+outer_num_inlets = 4; % [N/A] number of tangential inlets 
 kin_visc_FUEL= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of LOX
 coeff_nozzle_open = 3; % coefficient of nozzle opening, from Beyvel pg. 263 
     % should be (2-5), Bazarov says 3x (for closed). This value is the ratio of "swirl
     % arm"/nozzle radius
+permitted_vortex_rad = (external_nozzle_diam / 2) + .00098425; % value comes from bazarov, Pg. 76
 
 % INITIAL VALUES
-permitted_vortex_rad = (external_nozzle_diam / 2) + .00098425; % value comes from bazarov, Pg. 76
 outer_swirl_diam = 2 * permitted_vortex_rad; % first estimation of outer diameter
 effective_flow_area = m_dot_FUEL / sqrt(2 * FUEL_dens * delta_p_FUEL * gravity); % [] Beyvel, Eq. 5-63
-
 outlet_area = (pi / 4) * outer_swirl_diam^2; % [] 
-
 outer_disc_coeff = effective_flow_area / outlet_area; % [N/A]
 
 lcv = 1;
-
 while lcv < 100
     fcn = @(outer_filling_eff) (outer_filling_eff * sqrt(outer_filling_eff ...
         / (2 - outer_filling_eff)) - outer_disc_coeff); % Beyvel Eq. 5-66
@@ -145,14 +142,24 @@ while lcv < 100
      lcv = lcv + 1;
 end
 
-% Outer element final dimensions
+% Outer element final parameters
 outer_R = (outer_swirl_diam * coeff_nozzle_open) / 2;
+outer_inlet_diam = sqrt((2 * outer_R * outer_swirl_diam) / (outer_num_inlets * outer_K)); % Beyvel, Eq. 5-84
+outer_nozzle_length = 2 * outer_swirl_diam; % Suggested by Bazarov pg. 76
+outer_chamber_length = outer_R; % can really be anything reasonable
+outer_inlet_length = (outer_inlet_diam / 2) * 3; % Suggested by Bazarov to be (3-4) * inlet radius
+outer_chamber_diam = (2 * outer_R) + outer_inlet_diam;
 
+% Inner swirler output table
+inner_params = ["Inner Swirl Diam."; "Inner Inlet Diam."; "Inner Chamber Lg."; "Inner Inlet Lg."; "Inner Chamber diam."];
+inner_value = [inner_diam_final * 12; inner_inlet_diam * 12; inner_chamber_length * 12; inner_inlet_length * 12; inner_chamber_diam * 12];
+units = ["[in]"; "[in]"; "[in]"; "[in]"; "[in]"];
+inner_output = table(inner_params, inner_value, units);
 
-
-
-
-
+% Outer swirler output table
+outer_params = ["Outer Swirl Diam."; "Outer Inlet Diam."; "Outer Chamber Lg."; "Outer Inlet Lg."; "Outer Chamber diam."];
+outer_value = [outer_swirl_diam_new * 12; outer_inlet_diam * 12; outer_chamber_length * 12; outer_inlet_length * 12; outer_chamber_diam * 12];
+outer_output = table(outer_params, outer_value, units);
 
 
 
