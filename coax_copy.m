@@ -22,7 +22,7 @@ spray_angle = 30; % [degrees] Desired spray half angle
 kin_visc_LOX= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of LOX
 K_guess = 3;
 inner_wall_thck = .005104; % [ft] wall thickness of the inner element, ~ 1/16"
-coeff_nozzle_open = 3; % coefficient of nozzle opening, from Beyvel pg. 263 
+coeff_nozzle_open = 2.75; % coefficient of nozzle opening, from Beyvel pg. 263 
     % should be (2-5), Bazarov says 3x. This value is the ratio of "swirl
     % arm"/nozzle radius
 
@@ -98,12 +98,12 @@ inner_chamber_diam = (2 * inner_R) + inner_inlet_diam;
 % TIME FOR PART TWO!!!!!!
 
 % Outer Element constants and assumptions
-m_dot_FUEL = .313; % [lbm/s] Oxidizer mass flow  
-delta_p_FUEL = 10800; % [lbf/ft^2] Oxidizer pressure drop 
-FUEL_dens = 50.57; % [lb/ft^3] LOX density 
+m_dot_FUEL = .313; % [lbm/s] Fuel mass flow  
+delta_p_FUEL = 10800; % [lbf/ft^2] Fuel pressure drop 
+FUEL_dens = 27.0; % [lb/ft^3] Fuel density 
 outer_num_inlets = 4; % [N/A] number of tangential inlets 
-kin_visc_FUEL= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of LOX
-coeff_nozzle_open = 3; % coefficient of nozzle opening, from Beyvel pg. 263 
+kin_visc_FUEL= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of Fuel
+%coeff_nozzle_open = 2.75; % coefficient of nozzle opening, from Beyvel pg. 263 
     % should be (2-5), Bazarov says 3x (for closed). This value is the ratio of "swirl
     % arm"/nozzle radius
 permitted_vortex_rad = (external_nozzle_diam / 2) + .00098425; % value comes from bazarov, Pg. 76
