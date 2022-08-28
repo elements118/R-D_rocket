@@ -20,9 +20,9 @@ LOX_dens = 71.168; % [lb/ft^3] LOX density
 inner_num_inlets = 3; % [N/A] number of tangential inlets 
 spray_angle = 30; % [degrees] Desired spray half angle 
 kin_visc_LOX= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of LOX
-K_guess = 3;
+K_guess = 1.5;
 inner_wall_thck = .005104; % [ft] wall thickness of the inner element, ~ 1/16"
-coeff_nozzle_open = 2.75; % coefficient of nozzle opening, from Beyvel pg. 263 
+coeff_nozzle_open = 2; % coefficient of nozzle opening, from Beyvel pg. 263 
     % should be (2-5), Bazarov says 3x. This value is the ratio of "swirl
     % arm"/nozzle radius
 
@@ -54,14 +54,11 @@ while lcv < 100
     Re_LOX = (4 * m_dot_LOX)/ (pi * LOX_dens * ...
         kin_visc_LOX * sqrt(inner_num_inlets) * inner_inlet_diam); % Beyvel, Eq. 5-86
     
-    inner_frict_coeff = exp((25.8/log(Re_LOX)^2.58) - 2); % Friction Coefficient Beyvel, Eq. 5-87
+    inner_frict_coeff = exp((25.8/log(Re_LOX)^2.58) - 2); % inlet hydraulic loss Coefficient Beyvel, Eq. 5-87
     
     K_frict = (inner_R * (inner_swirl_diam / 2)) / ((inner_num_inlets * ...
         (inner_inlet_diam / 2)^2) + (inner_frict_coeff / 2) * ...
-        inner_R * (inner_R - (inner_swirl_diam / 2))); % K value taking friction into account Beyvel, Eq. 5-81
-
-    visc_spray_angle = atand((2 * inner_disc_coeff * K_frict) / sqrt((1 + inner_S)^2 - ...
-    (4 * inner_disc_coeff^2 * K_guess^2))); % Beyvel, Eq. 5-80
+        inner_R * (inner_R - (inner_swirl_diam / 2))); % K value taking hydraulic loss into account Beyvel, Eq. 5-81
 
     eq_filling_eff = fzero(@(eq_filling_eff) K_frict - (((1-eq_filling_eff) * sqrt(2)) ...
         / (eq_filling_eff * sqrt(eq_filling_eff))), .4); % [N/A] Beyvel and Orzechowski, Eq. 5-65
@@ -70,18 +67,23 @@ while lcv < 100
         (2 - eq_filling_eff)); % temporary discharge coeff from K_frict value
 
     inner_visc_disc_coeff = eq_disc_coeff / (sqrt(1 + ...
-        eq_disc_coeff^2 * (K_guess^2 / coeff_nozzle_open^2))); % Bazarov Eq. 99
+        eq_disc_coeff^2 * (K_guess^2 / coeff_nozzle_open^2))); % Bazarov Eq. 99. Takes into account angular momentum losses
 
     inner_visc_swirl_diam = sqrt(4 * m_dot_LOX / (pi * inner_visc_disc_coeff * ...
         sqrt(2 * LOX_dens * delta_p_LOX * gravity))); % Beyvel, Eq. 5-82
 
+    inner_R = (coeff_nozzle_open * inner_visc_swirl_diam) / 2;
+
     K_visc = (2 * inner_R * inner_visc_swirl_diam) / (inner_num_inlets * ...
         inner_inlet_diam^2); % Beyvel 5-83
+
+    visc_spray_angle = atand((2 * inner_disc_coeff * K_visc) / sqrt((1 + inner_S)^2 - ...
+    (4 * inner_visc_disc_coeff^2 * K_guess^2))); % Beyvel, Eq. 5-80
 
     lcv = lcv + 1;
     if ((K_guess - K_visc) / K_visc < .04)
         K_final = K_visc;
-        inner_diam_final = inner_swirl_diam;
+        inner_diam_final = inner_visc_swirl_diam;
         external_nozzle_diam = inner_diam_final + (2 * inner_wall_thck); % rough guess, wall = 1/16"
         break
     else
@@ -151,15 +153,16 @@ outer_inlet_length = (outer_inlet_diam / 2) * 3; % Suggested by Bazarov to be (3
 outer_chamber_diam = (2 * outer_R) + outer_inlet_diam;
 
 % Inner swirler output table
-inner_params = ["Inner Swirl Diam."; "Inner Inlet Diam."; "Inner Chamber Lg."; "Inner Inlet Lg."; "Inner Chamber diam."];
-inner_value = [inner_diam_final * 12; inner_inlet_diam * 12; inner_chamber_length * 12; inner_inlet_length * 12; inner_chamber_diam * 12];
-units = ["[in]"; "[in]"; "[in]"; "[in]"; "[in]"];
+inner_params = ["Inner Swirl Diam."; "Inner Inlet Diam."; "Inner Chamber Lg."; "Inner Inlet Lg."; "Inner Chamber diam."; "Discharge Coef."];
+inner_value = [inner_diam_final * 12; inner_inlet_diam * 12; inner_chamber_length * 12; inner_inlet_length * 12; inner_chamber_diam * 12; inner_visc_disc_coeff];
+units = ["[in]"; "[in]"; "[in]"; "[in]"; "[in]"; "[N/A]"];
 inner_output = table(inner_params, inner_value, units);
 
 % Outer swirler output table
 outer_params = ["Outer Swirl Diam."; "Outer Inlet Diam."; "Outer Chamber Lg."; "Outer Inlet Lg."; "Outer Chamber diam."];
 outer_value = [outer_swirl_diam_new * 12; outer_inlet_diam * 12; outer_chamber_length * 12; outer_inlet_length * 12; outer_chamber_diam * 12];
-outer_output = table(outer_params, outer_value, units);
+outer_units = ["[in]"; "[in]"; "[in]"; "[in]"; "[in]"];
+outer_output = table(outer_params, outer_value, outer_units);
 
 
 
