@@ -2,10 +2,13 @@
 Purdue Space Program - Liquids
 Research and Development - coaxial bi-swirl sizing code
 Created by: Jacob Bell
-In this early version, a  mix of both method's presented by Beyvel and Bazarov are used. 
-Essentially just means that forms of
-certain equations are expressed in varying ways (see document on the
-drive for direct equation comparison). I'd like to emphasize the point that
+In this version, the inner element is size via spray cone angle. The First
+loop iterates until a certain spray cone angle value is met, determining
+all other parameters. The outer element is size via film thickness; a value
+is guessed, and for the guessed value the actual film thickness is found.
+This iterates until guessed value and actual value converge. The outer
+element is restr
+I'd like to emphasize the point that
 many things are assumed initially, including the radius of swirling
 "coefficient of nozzle opening" and chamber length.
 %}
@@ -19,7 +22,7 @@ gravity = 32.3; % [ft/s^2] Acceleration due to gravity
 m_dot_LOX = 1; % [lbm/s] Oxidizer mass flow  
 delta_p_LOX = 10800; % [lbf/ft^2] Oxidizer pressure drop 
 LOX_dens = 71.168; % [lb/ft^3] LOX density 
-inner_num_inlets = 3; % [N/A] number of tangential inlets 
+in_inlets = 3; % [N/A] number of tangential inlets 
 spray_angle = 30; % [deg.] Desired spray half angle 
 kin_visc_LOX= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of LOX
 K_guess = 3;
@@ -49,18 +52,18 @@ while lcv < 200
     in_swirl_diam = sqrt(4 * m_dot_LOX / (pi * in_disc_coeff * ...
         sqrt(2 * LOX_dens * delta_p_LOX * gravity))); % Beyvel, Eq. 5-82
     
-    inner_R = (coeff_nozzle_open * in_swirl_diam) / 2; % "swirl arm", center axis to inlet
+    in_R = (coeff_nozzle_open * in_swirl_diam) / 2; % "swirl arm", center axis to inlet
     
-    inner_inlet_diam = sqrt((2 * inner_R * in_swirl_diam) / (inner_num_inlets * K_guess)); % Beyvel, Eq. 5-84
+    inner_inlet_diam = sqrt((2 * in_R * in_swirl_diam) / (in_inlets * K_guess)); % Beyvel, Eq. 5-84
 
     Re_LOX = (4 * m_dot_LOX)/ (pi * LOX_dens * ...
-        kin_visc_LOX * sqrt(inner_num_inlets) * inner_inlet_diam); % Beyvel, Eq. 5-86
+        kin_visc_LOX * sqrt(in_inlets) * inner_inlet_diam); % Beyvel, Eq. 5-86
     
     inner_frict_coeff = exp((25.8/log(Re_LOX)^2.58) - 2); % inlet hydraulic loss Coefficient Beyvel, Eq. 5-87
     
-    K_frict = (inner_R * (in_swirl_diam / 2)) / ((inner_num_inlets * ...
+    K_frict = (in_R * (in_swirl_diam / 2)) / ((in_inlets * ...
         (inner_inlet_diam / 2)^2) + (inner_frict_coeff / 2) * ...
-        inner_R * (inner_R - (in_swirl_diam / 2))); % K value taking hydraulic loss into account Beyvel, Eq. 5-81
+        in_R * (in_R - (in_swirl_diam / 2))); % K value taking hydraulic loss into account Beyvel, Eq. 5-81
 
     eq_fill_eff = fzero(@(eq_fill_eff) K_frict - (((1-eq_fill_eff) * sqrt(2)) ...
         / (eq_fill_eff * sqrt(eq_fill_eff))), .4); % [N/A] Beyvel and Orzechowski, Eq. 5-65
@@ -74,9 +77,9 @@ while lcv < 200
     in_visc_swirl_diam = sqrt(4 * m_dot_LOX / (pi * in_visc_disc_coeff * ...
         sqrt(2 * LOX_dens * delta_p_LOX * gravity))); % Beyvel, Eq. 5-82
 
-    inner_R = (coeff_nozzle_open * in_visc_swirl_diam) / 2;
+    in_R = (coeff_nozzle_open * in_visc_swirl_diam) / 2;
 
-    K_visc = (2 * inner_R * in_visc_swirl_diam) / (inner_num_inlets * ...
+    K_visc = (2 * in_R * in_visc_swirl_diam) / (in_inlets * ...
         inner_inlet_diam^2); % Beyvel 5-83
 
     visc_spray_angle = atand((2 * in_disc_coeff * K_visc) / sqrt((1 + inner_S)^2 - ...
@@ -111,9 +114,9 @@ legend("Filling Eff.", "Discharge. Coeff");
 
 %% Inner swirler final parameter calcs
 inner_nozzle_length = 2 * in_swirl_diam; % Suggested by Bazarov pg. 76
-inner_chamber_length = 3 * inner_R; % From Bazarov, should be (2-3) * R pg. 76
+inner_chamber_length = 3 * in_R; % From Bazarov, should be (2-3) * R pg. 76
 inner_inlet_length = (inner_inlet_diam / 2) * 3; % Suggested by Bazarov to be (3-4) * inlet radius pg. 76
-in_cham_diam = (2 * inner_R) + inner_inlet_diam;
+in_cham_diam = (2 * in_R) + inner_inlet_diam;
 
 % TIME FOR PART TWO!!!!!!
 
@@ -121,62 +124,62 @@ in_cham_diam = (2 * inner_R) + inner_inlet_diam;
 m_dot_FUEL = .313; % [lbm/s] Fuel mass flow  
 delta_p_FUEL = 10800; % [lbf/ft^2] Fuel pressure drop 
 FUEL_dens = 27.0; % [lb/ft^3] Fuel density 
-outer_num_inlets = 4; % [N/A] number of tangential inlets 
+out_inlets = 4; % [N/A] number of tangential inlets 
 kin_visc_FUEL= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of Fuel
 coeff_nozzle_open = 3.5; % coefficient of nozzle opening, from Beyvel pg. 263 
     % should be (2-5), Bazarov says 3x (for closed). This value is the ratio of "swirl
     % arm"/nozzle radius
-permitted_vortex_rad = (ex_nozzle_diam / 2) + .00098425; % value comes from bazarov, Pg. 76 is .3mm
+permit_vortex = (ex_nozzle_diam / 2) + .00098425; % value comes from bazarov, Pg. 76 is .3mm
 
 %% INITIAL OUTER VALUES using minimum values for outlet area 
 film_thick_guess = .00098425; % same as gap, just a guess
-outer_swirl_diam = 2 * permitted_vortex_rad + 2 * film_thick_guess; % first estimation of outer diameter
+out_swirl_diam = 2 * permit_vortex + 2 * film_thick_guess; % first estimation of outer diameter
 effective_flow_area = m_dot_FUEL / sqrt(2 * FUEL_dens * delta_p_FUEL * gravity); % [] Beyvel, Eq. 5-63
-outlet_area = (pi / 4) * outer_swirl_diam^2; % [] 
-outer_disc_coeff = effective_flow_area / outlet_area; % [N/A]
+outlet_area = (pi / 4) * out_swirl_diam^2; % [] 
+out_disc_coeff = effective_flow_area / outlet_area; % [N/A]
 
 %% Outer Loop
 lcv_out = 1;
 while lcv_out < 100
-    fcn = @(outer_filling_eff) (outer_filling_eff * sqrt(outer_filling_eff ...
-        / (2 - outer_filling_eff)) - outer_disc_coeff); % Beyvel Eq. 5-66
+    fcn = @(out_filling_eff) (out_filling_eff * sqrt(out_filling_eff ...
+        / (2 - out_filling_eff)) - out_disc_coeff); % Beyvel Eq. 5-66
 
-    outer_filling_eff = fzero(fcn, .7);
+    out_filling_eff = fzero(fcn, .7);
 
-    outer_K = (((1 - outer_filling_eff) * sqrt(2)) ...
-        / (outer_filling_eff * sqrt(outer_filling_eff))); % [N/A] Beyvel, Eq. 5-65
+    outer_K = (((1 - out_filling_eff) * sqrt(2)) ...
+        / (out_filling_eff * sqrt(out_filling_eff))); % [N/A] Beyvel, Eq. 5-65
 
-    outer_disc_coeff = outer_filling_eff * sqrt(outer_filling_eff / (2 - outer_filling_eff));
+    out_disc_coeff = out_filling_eff * sqrt(out_filling_eff / (2 - out_filling_eff));
 
-    fcn = @(outer_S) ((sqrt(abs(1 - outer_disc_coeff^2 * outer_K^2))) ...
-    - (outer_S * sqrt(abs(outer_S^2 - outer_disc_coeff^2 * outer_K^2))) ...
-    - (outer_disc_coeff^2 * outer_K^2 * log((1 ...
-    + sqrt(abs(1 - outer_disc_coeff^2 * outer_K^2))) ...
-    / (outer_S + sqrt(abs(inner_S^2 - outer_disc_coeff^2 ...
-    * outer_K^2))))) - outer_disc_coeff); % Beyvel Eq. 5-58
+    fcn = @(out_S) ((sqrt(abs(1 - out_disc_coeff^2 * outer_K^2))) ...
+    - (out_S * sqrt(abs(out_S^2 - out_disc_coeff^2 * outer_K^2))) ...
+    - (out_disc_coeff^2 * outer_K^2 * log((1 ...
+    + sqrt(abs(1 - out_disc_coeff^2 * outer_K^2))) ...
+    / (out_S + sqrt(abs(inner_S^2 - out_disc_coeff^2 ...
+    * outer_K^2))))) - out_disc_coeff); % Beyvel Eq. 5-58
 
-    outer_S = fzero(fcn, .7);
+    out_S = fzero(fcn, .7);
 
-    film_thick = .5 * (outer_swirl_diam - (outer_S * outer_swirl_diam));
+    film_thick = .5 * (out_swirl_diam - (out_S * out_swirl_diam));
 
-    outer_swirl_diam_new = (2 * permitted_vortex_rad) + (2 * film_thick);
+    out_swirl_diam_new = (2 * permit_vortex) + (2 * film_thick);
 
-     if abs((outer_swirl_diam_new - outer_swirl_diam) / outer_swirl_diam) < .005
+     if abs((out_swirl_diam_new - out_swirl_diam) / out_swirl_diam) < .005
          break
      else
-         outer_swirl_diam = outer_swirl_diam_new;
+         out_swirl_diam = out_swirl_diam_new;
      end
      lcv_out = lcv_out + 1;
 end
 
 %% Outer element final parameters
-outer_R = (outer_swirl_diam * coeff_nozzle_open) / 2;
-outer_inlet_diam = sqrt((2 * outer_R * outer_swirl_diam) / (outer_num_inlets * outer_K)); % Beyvel, Eq. 5-84
-outer_nozzle_length = 2 * outer_swirl_diam; % Suggested by Bazarov pg. 76
-outer_chamber_length = outer_R; % can really be anything reasonable
-outer_inlet_length = (outer_inlet_diam / 2) * 3; % Suggested by Bazarov to be (3-4) * inlet radius
-outer_chamber_diam = (2 * outer_R) + outer_inlet_diam;
-outer_check = (2 * outer_R * outer_swirl_diam) / (outer_num_inlets * outer_inlet_diam^2);
+out_R = (out_swirl_diam * coeff_nozzle_open) / 2;
+out_inlet_diam = sqrt((2 * out_R * out_swirl_diam) / (out_inlets * outer_K)); % Beyvel, Eq. 5-84
+outer_nozzle_length = 2 * out_swirl_diam; % Suggested by Bazarov pg. 76
+outer_chamber_length = out_R; % can really be anything reasonable
+outer_inlet_length = (out_inlet_diam / 2) * 3; % Suggested by Bazarov to be (3-4) * inlet radius
+outer_chamber_diam = (2 * out_R) + out_inlet_diam;
+outer_check = (2 * out_R * out_swirl_diam) / (out_inlets * out_inlet_diam^2);
 
 %% Inner swirler output table
 inner_params = ["Inner Swirl Diam."; "Inner Inlet Diam."; "Inner Chamber Lg."; "Inner Inlet Lg."; "Inner Chamber diam."; "Discharge Coef."];
@@ -186,7 +189,7 @@ inner_output = table(inner_params, inner_value, units);
 
 %% Outer swirler output table
 outer_params = ["Outer Swirl Diam."; "Outer Inlet Diam."; "Outer Chamber Lg."; "Outer Inlet Lg."; "Outer Chamber diam."];
-outer_value = [outer_swirl_diam_new * 12; outer_inlet_diam * 12; outer_chamber_length * 12; outer_inlet_length * 12; outer_chamber_diam * 12];
+outer_value = [out_swirl_diam_new * 12; out_inlet_diam * 12; outer_chamber_length * 12; outer_inlet_length * 12; outer_chamber_diam * 12];
 outer_units = ["[in]"; "[in]"; "[in]"; "[in]"; "[in]"];
 outer_output = table(outer_params, outer_value, outer_units);
 

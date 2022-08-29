@@ -2,10 +2,16 @@
 Purdue Space Program - Liquids
 Research and Development - coaxial bi-swirl sizing code
 Created by: Jacob Bell
-In this early version, a  mix of both method's presented by Beyvel and Bazarov are used. 
-Essentially just means that forms of
-certain equations are expressed in varying ways (see document on the
-drive for direct equation comparison). I'd like to emphasize the point that
+
+- In this version, the inner element is size via spray cone angle. The First
+loop iterates until a certain spray cone angle value is met, determining
+all other parameters. The outer element is size via film thickness; a value
+is guessed, and for the guessed value the actual film thickness is found.
+This iterates until guessed value and actual value converge. The outer
+element is restricted somewhat by the inner element sizing, and has a much
+smaller cd and much larger K value.
+
+- I'd like to emphasize the point that
 many things are assumed initially, including the radius of swirling
 "coefficient of nozzle opening" and chamber length.
 %}
