@@ -20,16 +20,16 @@ m_dot_LOX = 1; % [lbm/s] Oxidizer mass flow
 delta_p_LOX = 10800; % [lbf/ft^2] Oxidizer pressure drop 
 LOX_dens = 71.168; % [lb/ft^3] LOX density 
 inner_num_inlets = 3; % [N/A] number of tangential inlets 
-spray_angle = 30; % [degrees] Desired spray half angle 
+spray_angle = 30; % [deg.] Desired spray half angle 
 kin_visc_LOX= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of LOX
-K_guess = 4;
+K_guess = 3;
 inner_wall_thck = .005104; % [ft] wall thickness of the inner element, ~ 1/16"
 coeff_nozzle_open = 2; % coefficient of nozzle opening, from Beyvel pg. 263 
     % should be (2-5), Bazarov says 3x. This value is the ratio of "swirl
     % arm"/nozzle radius
 
 %% Inner Loop
-spray_vals = zeros(5,1);
+spray_vals = zeros(7,1);
 lcv = 1;
 while lcv < 200
     inner_filling_eff = fzero(@(inner_filling_eff) K_guess - (((1-inner_filling_eff) * sqrt(2)) ...
@@ -87,6 +87,9 @@ while lcv < 200
     spray_vals(3,lcv) = K_visc;
     spray_vals(4,lcv) = inner_visc_swirl_diam * 12;
     spray_vals(5,lcv) = inner_inlet_diam * 12;
+    spray_vals(6,lcv) = inner_filling_eff;
+    spray_vals(7,lcv) = inner_visc_disc_coeff;
+    spray_vals(8,lcv) = inner_S;
 
     lcv = lcv + 1;
     if (visc_spray_angle - spray_angle) < .04
@@ -98,6 +101,13 @@ while lcv < 200
         K_guess = K_visc;
     end
 end
+
+hold("on");
+plot(spray_vals(3,:),spray_vals(6,:),".");
+plot(spray_vals(3,:),spray_vals(7,:),".");
+xlabel("K value");
+legend("Filling Eff.", "Discharge. Coeff");
+
 
 %% Inner swirler final parameter calcs
 inner_nozzle_length = 2 * inner_swirl_diam; % Suggested by Bazarov pg. 76
