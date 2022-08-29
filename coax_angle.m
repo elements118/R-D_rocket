@@ -22,17 +22,16 @@ LOX_dens = 71.168; % [lb/ft^3] LOX density
 inner_num_inlets = 3; % [N/A] number of tangential inlets 
 spray_angle = 30; % [degrees] Desired spray half angle 
 kin_visc_LOX= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of LOX
-K_guess = 1.5;
+K_guess = 4;
 inner_wall_thck = .005104; % [ft] wall thickness of the inner element, ~ 1/16"
 coeff_nozzle_open = 2; % coefficient of nozzle opening, from Beyvel pg. 263 
     % should be (2-5), Bazarov says 3x. This value is the ratio of "swirl
     % arm"/nozzle radius
 
 %% Inner Loop
-
-K_vals = zeros(2,1);
+spray_vals = zeros(5,1);
 lcv = 1;
-while lcv < 100
+while lcv < 200
     inner_filling_eff = fzero(@(inner_filling_eff) K_guess - (((1-inner_filling_eff) * sqrt(2)) ...
         / (inner_filling_eff * sqrt(inner_filling_eff))), .4); % [N/A] Beyvel and Orzechowski, Eq. 5-65
     
@@ -83,13 +82,17 @@ while lcv < 100
     visc_spray_angle = atand((2 * inner_disc_coeff * K_visc) / sqrt((1 + inner_S)^2 - ...
     (4 * inner_visc_disc_coeff^2 * K_guess^2))); % Beyvel, Eq. 5-80
 
-    K_vals(1,lcv) = 
+    spray_vals(1,lcv) = lcv;
+    spray_vals(2,lcv) = visc_spray_angle;
+    spray_vals(3,lcv) = K_visc;
+    spray_vals(4,lcv) = inner_visc_swirl_diam * 12;
+    spray_vals(5,lcv) = inner_inlet_diam * 12;
 
     lcv = lcv + 1;
-    if ((K_guess - K_visc) / K_visc < .04)
+    if (visc_spray_angle - spray_angle) < .04
         K_final = K_visc;
         inner_diam_final = inner_visc_swirl_diam;
-        external_nozzle_diam = inner_diam_final + (2 * inner_wall_thck); % rough guess, wall = 1/16"
+        ex_nozzle_diam = inner_diam_final + (2 * inner_wall_thck); % rough guess, wall = 1/16"
         break
     else
         K_guess = K_visc;
@@ -113,7 +116,7 @@ kin_visc_FUEL= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of Fuel
 coeff_nozzle_open = 3.5; % coefficient of nozzle opening, from Beyvel pg. 263 
     % should be (2-5), Bazarov says 3x (for closed). This value is the ratio of "swirl
     % arm"/nozzle radius
-permitted_vortex_rad = (external_nozzle_diam / 2) + .00098425; % value comes from bazarov, Pg. 76 is .3mm
+permitted_vortex_rad = (ex_nozzle_diam / 2) + .00098425; % value comes from bazarov, Pg. 76 is .3mm
 
 %% INITIAL OUTER VALUES using minimum values for outlet area 
 film_thick_guess = .00098425; % same as gap, just a guess
@@ -122,10 +125,9 @@ effective_flow_area = m_dot_FUEL / sqrt(2 * FUEL_dens * delta_p_FUEL * gravity);
 outlet_area = (pi / 4) * outer_swirl_diam^2; % [] 
 outer_disc_coeff = effective_flow_area / outlet_area; % [N/A]
 
-lcv = 1;
-
 %% Outer Loop
-while lcv < 100
+lcv_out = 1;
+while lcv_out < 100
     fcn = @(outer_filling_eff) (outer_filling_eff * sqrt(outer_filling_eff ...
         / (2 - outer_filling_eff)) - outer_disc_coeff); % Beyvel Eq. 5-66
 
@@ -154,7 +156,7 @@ while lcv < 100
      else
          outer_swirl_diam = outer_swirl_diam_new;
      end
-     lcv = lcv + 1;
+     lcv_out = lcv_out + 1;
 end
 
 %% Outer element final parameters
