@@ -114,6 +114,9 @@ end
 hold("on");
 plot(spray_vals(3,:),spray_vals(6,:),".");
 plot(spray_vals(3,:),spray_vals(7,:),".");
+yyaxis right 
+ylabel("Viscous Spray Angle");
+plot(spray_vals(3,:),spray_vals(2,:));
 xlabel("K value");
 legend("Filling Eff.", "Discharge. Coeff");
 
