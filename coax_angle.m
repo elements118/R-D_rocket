@@ -102,6 +102,8 @@ while lcv < 200
         K_final = K_visc;
         inner_diam_final = in_visc_swirl_diam;
         ex_nozzle_diam = inner_diam_final + (2 * inner_wall_thck); % rough guess, wall = 1/16"
+        angle_check = atand((2 * in_visc_disc_coeff * K_final) / (sqrt((1 + ...
+    inner_S)^2 - (4 * in_visc_disc_coeff^2 * K_final^2))));
         break
     else
         K_guess = K_visc;
@@ -113,7 +115,6 @@ plot(spray_vals(3,:),spray_vals(6,:),".");
 plot(spray_vals(3,:),spray_vals(7,:),".");
 xlabel("K value");
 legend("Filling Eff.", "Discharge. Coeff");
-
 
 %% Inner swirler final parameter calcs
 inner_nozzle_length = 2 * in_swirl_diam; % Suggested by Bazarov pg. 76
@@ -195,11 +196,6 @@ outer_params = ["Outer Swirl Diam."; "Outer Inlet Diam."; "Outer Chamber Lg."; "
 outer_value = [out_swirl_diam_new * 12; out_inlet_diam * 12; outer_chamber_length * 12; outer_inlet_length * 12; outer_chamber_diam * 12];
 outer_units = ["[in]"; "[in]"; "[in]"; "[in]"; "[in]"];
 outer_output = table(outer_params, outer_value, outer_units);
-
-
-
-
-
 
 
 

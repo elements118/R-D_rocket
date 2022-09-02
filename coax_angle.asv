@@ -2,13 +2,16 @@
 Purdue Space Program - Liquids
 Research and Development - coaxial bi-swirl sizing code
 Created by: Jacob Bell
-In this version, the inner element is size via spray cone angle. The First
+
+- In this version, the inner element is size via spray cone angle. The First
 loop iterates until a certain spray cone angle value is met, determining
 all other parameters. The outer element is size via film thickness; a value
 is guessed, and for the guessed value the actual film thickness is found.
 This iterates until guessed value and actual value converge. The outer
-element is restr
-I'd like to emphasize the point that
+element is restricted somewhat by the inner element sizing, and has a much
+smaller cd and much larger K value.
+
+- I'd like to emphasize the point that
 many things are assumed initially, including the radius of swirling
 "coefficient of nozzle opening" and chamber length.
 %}
@@ -193,7 +196,7 @@ outer_value = [out_swirl_diam_new * 12; out_inlet_diam * 12; outer_chamber_lengt
 outer_units = ["[in]"; "[in]"; "[in]"; "[in]"; "[in]"];
 outer_output = table(outer_params, outer_value, outer_units);
 
-
+angle_check = atand((2 * in_visc_disc_coeff * K_final) / (sqrt((1 + inner_S)^2) - 4 * in_visc_disc_coeff^2 );
 
 
 
