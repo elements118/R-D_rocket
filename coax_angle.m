@@ -26,7 +26,7 @@ m_dot_LOX = 1; % [lbm/s] Oxidizer mass flow
 delta_p_LOX = 10800; % [lbf/ft^2] Oxidizer pressure drop 
 LOX_dens = 71.168; % [lb/ft^3] LOX density 
 in_inlets = 3; % [N/A] number of tangential inlets 
-spray_angle = 30; % [deg.] Desired spray half angle 
+spray_angle = 35; % [deg.] Desired spray half angle 
 kin_visc_LOX= 2.362 * 10^-6; % [ft^2/s] kinematic viscosity of LOX
 K_guess = 3;
 inner_wall_thck = .005104; % [ft] wall thickness of the inner element, ~ 1/16"
@@ -88,7 +88,7 @@ while lcv < 200
     visc_spray_angle = atand((2 * in_disc_coeff * K_visc) / sqrt((1 + inner_S)^2 - ...
     (4 * in_visc_disc_coeff^2 * K_guess^2))); % Beyvel, Eq. 5-80
 
-    spray_vals(1,lcv) = lcv;
+    spray_vals(1,lcv) = spray_angle;
     spray_vals(2,lcv) = visc_spray_angle;
     spray_vals(3,lcv) = K_visc;
     spray_vals(4,lcv) = in_visc_swirl_diam * 12;
@@ -96,9 +96,10 @@ while lcv < 200
     spray_vals(6,lcv) = in_fill_eff;
     spray_vals(7,lcv) = in_visc_disc_coeff;
     spray_vals(8,lcv) = inner_S;
+    spray_vals(9,lcv) = K_guess;
 
     lcv = lcv + 1;
-    if (visc_spray_angle - spray_angle) < .04
+    if abs(visc_spray_angle - spray_angle) < .01
         K_final = K_visc;
         inner_diam_final = in_visc_swirl_diam;
         ex_nozzle_diam = inner_diam_final + (2 * inner_wall_thck); % rough guess, wall = 1/16"
@@ -106,7 +107,7 @@ while lcv < 200
     inner_S)^2 - (4 * in_visc_disc_coeff^2 * K_final^2))));
         break
     else
-        K_guess = K_visc;
+        K_guess = (spray_angle / visc_spray_angle) * K_guess;
     end
 end
 
